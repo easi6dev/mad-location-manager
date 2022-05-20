@@ -1,5 +1,7 @@
 package com.example.lezh1k.sensordatacollector;
 
+import static com.mapbox.mapboxsdk.Mapbox.getApplicationContext;
+
 import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -9,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
@@ -30,6 +33,7 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.elvishew.xlog.LogLevel;
 import com.elvishew.xlog.XLog;
@@ -50,6 +54,7 @@ import mad.location.manager.lib.Services.Settings;
 
 import com.example.lezh1k.sensordatacollector.Interfaces.MapInterface;
 import com.example.lezh1k.sensordatacollector.Presenters.MapPresenter;
+import com.google.gson.Gson;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.annotations.Polyline;
 import com.mapbox.mapboxsdk.annotations.PolylineOptions;
@@ -60,12 +65,18 @@ import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.function.Consumer;
 
 public class MainActivity extends AppCompatActivity implements LocationServiceInterface, MapInterface, ILogger {
 
@@ -183,9 +194,43 @@ public class MainActivity extends AppCompatActivity implements LocationServiceIn
     private boolean m_isCalibrating = false;
     private RefreshTask m_refreshTask = new RefreshTask(1000l, this);
 
+    private static final int CHOOSE_FILE_REQUESTCODE = 582;
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == CHOOSE_FILE_REQUESTCODE) {
+            Uri path = data.getData();
+            try {
+                InputStream inputStream = getContentResolver().openInputStream(path);
+                InputStreamReader isReader = new InputStreamReader(inputStream);
+                BufferedReader reader = new BufferedReader(isReader);
+
+                StringBuffer sb = new StringBuffer();
+                String str;
+                while((str = reader.readLine())!= null){
+                    sb.append(str);
+                }
+
+                String json = sb.toString();
+
+                Gson gson = new Gson();
+                LocData locData = gson.fromJson(json, LocData.class);
+                Log.d("test", "test");
+
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
     }
 
     private void set_isLogging(boolean isLogging) {
@@ -244,6 +289,7 @@ public class MainActivity extends AppCompatActivity implements LocationServiceIn
             btnStartStopText = "Start tracking";
             btnTvStatusText = "Paused";
             m_presenter.stop();
+            m_presenter.save();
             ServicesHelper.getLocationService(this, value -> {
                 value.stop();
             });
@@ -284,6 +330,10 @@ public class MainActivity extends AppCompatActivity implements LocationServiceIn
 
     public void btnStartStop_click(View v) {
         set_isLogging(!m_isLogging);
+    }
+
+    public void btnGetData_click(View v) {
+        openFile();
     }
 
     public void btnCalibrate_click(View v) {
@@ -596,6 +646,35 @@ public class MainActivity extends AppCompatActivity implements LocationServiceIn
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+
+    public void openFile() {
+
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("*/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+
+        // special intent for Samsung file manager
+        Intent sIntent = new Intent("com.sec.android.app.myfiles.PICK_DATA");
+        // if you want any file type, you can skip next line
+        sIntent.putExtra("CONTENT_TYPE", "*/*");
+        sIntent.addCategory(Intent.CATEGORY_DEFAULT);
+
+        Intent chooserIntent;
+        if (getPackageManager().resolveActivity(sIntent, 0) != null) {
+            // it is device with Samsung file manager
+            chooserIntent = Intent.createChooser(sIntent, "Open file");
+            chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{intent});
+        } else {
+            chooserIntent = Intent.createChooser(intent, "Open file");
+        }
+
+        try {
+            startActivityForResult(chooserIntent, CHOOSE_FILE_REQUESTCODE);
+        } catch (android.content.ActivityNotFoundException ex) {
+            Toast.makeText(getApplicationContext(), "No suitable File Manager was found.", Toast.LENGTH_SHORT).show();
+        }
     }
 
 }

@@ -1,26 +1,45 @@
 package com.example.lezh1k.sensordatacollector.Presenters;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.util.Log;
+import android.widget.Toast;
+
+import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 
 import mad.location.manager.lib.Commons.Utils;
 import mad.location.manager.lib.Loggers.GeohashRTFilter;
 
+import com.elvishew.xlog.XLog;
 import com.example.lezh1k.sensordatacollector.Interfaces.MapInterface;
+import com.example.lezh1k.sensordatacollector.LocData;
 import com.example.lezh1k.sensordatacollector.MainActivity;
+import com.google.gson.Gson;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import static android.content.Context.LOCATION_SERVICE;
+import static com.mapbox.mapboxsdk.Mapbox.getApplicationContext;
 
 /**
  * Created by lezh1k on 1/30/18.
@@ -80,15 +99,29 @@ public class MapPresenter implements LocationListener {
             LocationManager lm = (LocationManager) context.getSystemService(LOCATION_SERVICE);
             lm.removeUpdates(this);
             lm.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-                    Utils.GPS_MIN_TIME, Utils.GPS_MIN_DISTANCE, this );
+                    Utils.GPS_MIN_TIME, Utils.GPS_MIN_DISTANCE, this);
         }
     }
 
     public void stop() {
         LocationManager lm = (LocationManager) context.getSystemService(LOCATION_SERVICE);
         lm.removeUpdates(this);
+
         m_lstGpsCoordinates.clear();
         m_lstKalmanFilteredCoordinates.clear();
+    }
+
+    public void save() {
+        List<Location> gps = m_lstGpsCoordinates;
+        List<Location> kalman = m_lstKalmanFilteredCoordinates;
+        List<Location> gpsFiltered = m_geoHashRTFilter.getGeoFilteredTrack();
+
+        LocData data = new LocData(gps, kalman, gpsFiltered);
+
+        Gson gson = new Gson();
+        String testText = gson.toJson(data);
+        XLog.i(testText);
+        fileLogging(testText);
     }
 
     @Override
@@ -112,4 +145,24 @@ public class MapPresenter implements LocationListener {
     public void onProviderDisabled(String provider) {
         /*do nothing*/
     }
+
+    @SuppressLint("NewApi")
+    public void fileLogging(final String fileContents) {
+        Date date = new Date(System.currentTimeMillis());
+        SimpleDateFormat format = new SimpleDateFormat("yyyyMMddhhmmss");
+        String time = format.format(date);
+
+        String title = "log_test_" + time + ".txt";
+
+        try {
+            File path = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), title);
+//            File path = new File(context.getExternalFilesDirs(null)[0], title);
+            FileOutputStream writer = new FileOutputStream(path);
+            writer.write(fileContents.getBytes());
+            writer.close();
+        } catch (IOException e) {
+            Log.e("file", e.toString());
+        }
+    }
+
 }
