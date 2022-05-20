@@ -13,11 +13,13 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AppCompatActivity;
+
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Menu;
@@ -36,6 +38,7 @@ import com.elvishew.xlog.printer.Printer;
 import com.elvishew.xlog.printer.file.FilePrinter;
 import com.elvishew.xlog.printer.file.backup.FileSizeBackupStrategy;
 import com.elvishew.xlog.printer.file.naming.FileNameGenerator;
+
 import mad.location.manager.lib.Commons.Utils;
 import mad.location.manager.lib.Interfaces.ILogger;
 import mad.location.manager.lib.Interfaces.LocationServiceInterface;
@@ -70,17 +73,22 @@ public class MainActivity extends AppCompatActivity implements LocationServiceIn
 
     private String xLogFolderPath;
     private static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+
     class ChangableFileNameGenerator implements FileNameGenerator {
         private String fileName;
+
         public void setFileName(String fileName) {
             this.fileName = fileName;
         }
+
         public ChangableFileNameGenerator() {
         }
+
         @Override
         public boolean isFileNameChangeable() {
             return true;
         }
+
         @Override
         public String generateFileName(int logLevel, long timestamp) {
             return fileName;
@@ -88,6 +96,7 @@ public class MainActivity extends AppCompatActivity implements LocationServiceIn
     }
 
     ChangableFileNameGenerator xLogFileNameGenerator = new ChangableFileNameGenerator();
+
     public void initXlogPrintersFileName() {
         sdf.setTimeZone(TimeZone.getDefault());
         String dateStr = sdf.format(System.currentTimeMillis());
@@ -104,7 +113,7 @@ public class MainActivity extends AppCompatActivity implements LocationServiceIn
 
     @Override
     public void log2file(String format, Object... args) {
-        XLog.i(format, args);
+        Log.i("xlog", String.format(format, args));
     }
 
 
@@ -112,6 +121,7 @@ public class MainActivity extends AppCompatActivity implements LocationServiceIn
         boolean needTerminate = false;
         long deltaT;
         Context owner;
+
         RefreshTask(long deltaTMs, Context owner) {
             this.owner = owner;
             this.deltaT = deltaTMs;
@@ -160,6 +170,7 @@ public class MainActivity extends AppCompatActivity implements LocationServiceIn
             }
         }
     }
+
     /*********************************************************/
 
     private MapPresenter m_presenter;
@@ -193,13 +204,10 @@ public class MainActivity extends AppCompatActivity implements LocationServiceIn
             m_geoHashRTFilter.stop();
             m_geoHashRTFilter.reset(this);
             Settings.LocationProvider provider = Settings.LocationProvider.GPS;
-            if (gpsProvider.isSelected())
-            {
-                provider =   Settings.LocationProvider.GPS;
-            }
-            else if (fusedProvider.isSelected())
-            {
-                provider =  Settings.LocationProvider.FUSED;
+            if (gpsProvider.isSelected()) {
+                provider = Settings.LocationProvider.GPS;
+            } else if (fusedProvider.isSelected()) {
+                provider = Settings.LocationProvider.FUSED;
             }
             Settings.LocationProvider finalProvider = provider;
             ServicesHelper.getLocationService(this, value -> {
@@ -277,6 +285,7 @@ public class MainActivity extends AppCompatActivity implements LocationServiceIn
     public void btnStartStop_click(View v) {
         set_isLogging(!m_isLogging);
     }
+
     public void btnCalibrate_click(View v) {
         set_isCalibrating(!m_isCalibrating, true);
     }

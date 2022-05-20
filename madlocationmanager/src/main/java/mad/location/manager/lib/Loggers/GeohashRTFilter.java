@@ -1,6 +1,7 @@
 package mad.location.manager.lib.Loggers;
 
 import android.location.Location;
+import android.util.Log;
 
 import mad.location.manager.lib.Commons.Coordinates;
 import mad.location.manager.lib.Commons.GeoPoint;
@@ -37,6 +38,7 @@ public class GeohashRTFilter {
     private GeoPoint lastGeoPointAsIs;
 
     private List<Location> m_geoFilteredTrack;
+
     public List<Location> getGeoFilteredTrack() {
         return m_geoFilteredTrack;
     }
@@ -57,12 +59,15 @@ public class GeohashRTFilter {
     public double getDistanceGeoFiltered() {
         return m_distanceGeoFiltered;
     }
+
     public double getDistanceGeoFilteredHP() {
         return m_distanceGeoFilteredHP;
     }
+
     public double getDistanceAsIs() {
         return m_distanceAsIs;
     }
+
     public double getDistanceAsIsHP() {
         return m_distanceAsIsHP;
     }
@@ -88,8 +93,8 @@ public class GeohashRTFilter {
 
     public void filter(Location loc) {
         if (m_logger != null) {
-            String toLog = String.format("%d%d FKS : lat=%f, lon=%f, alt=%f",
-                    Utils.LogMessageType.FILTERED_GPS_DATA.ordinal(),
+            String toLog = String.format("%s %d FKS : lat=%f, lon=%f, alt=%f",
+                    Utils.LogMessageType.FILTERED_GPS_DATA.name(),
                     loc.getTime(),
                     loc.getLatitude(), loc.getLongitude(), loc.getAltitude());
             m_logger.log2file(toLog);

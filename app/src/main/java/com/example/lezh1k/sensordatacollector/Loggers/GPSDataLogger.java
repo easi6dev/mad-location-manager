@@ -63,8 +63,8 @@ public class GPSDataLogger implements LocationListener {
 
 //        long now = System.currentTimeMillis();
         long now = loc.getElapsedRealtimeNanos() / 1000000;
-        m_lastLoggedGPSMessage = String.format("%d%d GPS : pos lat=%f, lon=%f, alt=%f, hdop=%f, speed=%f, bearing=%f, sa=%f",
-                Utils.LogMessageType.GPS_DATA.ordinal(),
+        m_lastLoggedGPSMessage = String.format("%s %d GPS : pos lat=%f, lon=%f, alt=%f, hdop=%f, speed=%f, bearing=%f, sa=%f",
+                Utils.LogMessageType.GPS_DATA.name(),
                 now, loc.getLatitude(),
                 loc.getLongitude(), loc.getAltitude(), loc.getAccuracy(),
                 loc.getSpeed(), loc.getBearing(), speedAccuracyMpS);

@@ -257,8 +257,8 @@ public class KalmanLocationService extends Service
         }
 
         private void handlePredict(SensorGpsDataItem sdi) {
-            log2File("%d%d KalmanPredict : accX=%f, accY=%f",
-                    Utils.LogMessageType.KALMAN_PREDICT.ordinal(),
+            log2File("%s %d KalmanPredict : accX=%f, accY=%f",
+                    Utils.LogMessageType.KALMAN_PREDICT.name(),
                     (long) sdi.getTimestamp(),
                     sdi.getAbsEastAcc(),
                     sdi.getAbsNorthAcc());
@@ -268,8 +268,8 @@ public class KalmanLocationService extends Service
         private void handleUpdate(SensorGpsDataItem sdi) {
             double xVel = sdi.getSpeed() * Math.cos(sdi.getCourse());
             double yVel = sdi.getSpeed() * Math.sin(sdi.getCourse());
-            log2File("%d%d KalmanUpdate : pos lon=%f, lat=%f, xVel=%f, yVel=%f, posErr=%f, velErr=%f",
-                    Utils.LogMessageType.KALMAN_UPDATE.ordinal(),
+            log2File("%s %d KalmanUpdate : pos lon=%f, lat=%f, xVel=%f, yVel=%f, posErr=%f, velErr=%f",
+                    Utils.LogMessageType.KALMAN_UPDATE.name(),
                     (long) sdi.getTimestamp(),
                     sdi.getGpsLon(),
                     sdi.getGpsLat(),
@@ -293,8 +293,10 @@ public class KalmanLocationService extends Service
         private Location locationAfterUpdateStep(SensorGpsDataItem sdi) {
             double xVel, yVel;
             Location loc = new Location(TAG);
-            GeoPoint pp = Coordinates.metersToGeoPoint(m_kalmanFilter.getCurrentX(),
-                    m_kalmanFilter.getCurrentY());
+            double cX, cY;
+            cX = m_kalmanFilter.getCurrentX();
+            cY = m_kalmanFilter.getCurrentY();
+            GeoPoint pp = Coordinates.metersToGeoPoint(cX, cY);
             loc.setLatitude(pp.Latitude);
             loc.setLongitude(pp.Longitude);
             loc.setAltitude(sdi.getGpsAlt());
@@ -385,7 +387,7 @@ public class KalmanLocationService extends Service
     @Override
     public void onCreate() {
         super.onCreate();
-        fusedLocationProvider = new FusedLocationProvider(this,this);
+        fusedLocationProvider = new FusedLocationProvider(this, this);
         gpsLocationProvider = new GPSLocationProvider(this, this, this);
         m_sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         m_powerManager = (PowerManager) getSystemService(POWER_SERVICE);
@@ -513,8 +515,8 @@ public class KalmanLocationService extends Service
                 android.opengl.Matrix.multiplyMV(absAcceleration, 0, rotationMatrixInv,
                         0, linearAcceleration, 0);
 
-                String logStr = String.format(Locale.ENGLISH, "%d%d abs acc: %f %f %f",
-                        Utils.LogMessageType.ABS_ACC_DATA.ordinal(),
+                String logStr = String.format(Locale.ENGLISH, "%s %d abs acc: %f %f %f",
+                        Utils.LogMessageType.ABS_ACC_DATA.name(),
                         nowMs, absAcceleration[east], absAcceleration[north], absAcceleration[up]);
                 log2File(logStr);
 
@@ -566,8 +568,8 @@ public class KalmanLocationService extends Service
         // and loc.getSpeedAccuracyMetersPerSecond() requares API 26
         double velErr = loc.getAccuracy() * 0.1;
 
-        String logStr = String.format(Locale.ENGLISH, "%d%d GPS : pos lat=%f, lon=%f, alt=%f, hdop=%f, speed=%f, bearing=%f, sa=%f",
-                Utils.LogMessageType.GPS_DATA.ordinal(),
+        String logStr = String.format(Locale.ENGLISH, "%s %d GPS : pos lat=%f, lon=%f, alt=%f, hdop=%f, speed=%f, bearing=%f, sa=%f",
+                Utils.LogMessageType.GPS_DATA.name(),
                 timeStamp, loc.getLatitude(),
                 loc.getLongitude(), loc.getAltitude(), loc.getAccuracy(),
                 loc.getSpeed(), loc.getBearing(), velErr);
@@ -581,8 +583,8 @@ public class KalmanLocationService extends Service
         m_magneticDeclination = f.getDeclination();
 
         if (m_kalmanFilter == null) {
-            log2File("%d%d KalmanAlloc : lon=%f, lat=%f, speed=%f, course=%f, m_accDev=%f, posDev=%f",
-                    Utils.LogMessageType.KALMAN_ALLOC.ordinal(),
+            log2File("%s %d KalmanAlloc : lon=%f, lat=%f, speed=%f, course=%f, m_accDev=%f, posDev=%f",
+                    Utils.LogMessageType.KALMAN_ALLOC.name(),
                     timeStamp, x, y, speed, course, m_settings.accelerationDeviation, posDev);
             m_kalmanFilter = new GPSAccKalmanFilter(
                     m_settings.useGpsSpeed,
