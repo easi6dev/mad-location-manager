@@ -3,18 +3,16 @@ package com.example.lezh1k.sensordatacollector.Presenters;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
-import android.widget.Toast;
 
-import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 
 import mad.location.manager.lib.Commons.Utils;
@@ -24,22 +22,25 @@ import com.elvishew.xlog.XLog;
 import com.example.lezh1k.sensordatacollector.Interfaces.MapInterface;
 import com.example.lezh1k.sensordatacollector.LocData;
 import com.example.lezh1k.sensordatacollector.MainActivity;
+import com.example.lezh1k.sensordatacollector.MyLocation;
 import com.google.gson.Gson;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Timer;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static android.content.Context.LOCATION_SERVICE;
-import static com.mapbox.mapboxsdk.Mapbox.getApplicationContext;
 
 /**
  * Created by lezh1k on 1/30/18.
@@ -66,6 +67,65 @@ public class MapPresenter implements LocationListener {
         getRoute();
         m_lstKalmanFilteredCoordinates.add(loc);
         m_geoHashRTFilter.filter(loc);
+    }
+
+    AtomicInteger atInt;
+    Thread thread;
+    Timer timer;
+    ExecutorService executor;
+    long delay = 1000L;
+    long delaySum = 0L;
+    int lastSize = 0;
+
+    public void rewindRoute(LocData locData, CameraPosition currentCameraPosition) {
+        if (executor != null) {
+            executor.shutdown();
+        }
+
+        lastSize = 0;
+        delaySum = 0L;
+        executor = Executors.newSingleThreadExecutor();
+
+        mapInterface.clearRoute();
+        CameraPosition.Builder position =
+                new CameraPosition.Builder(currentCameraPosition).target(new LatLng(locData.sorted.get(0).lat, locData.sorted.get(0).lng));
+        mapInterface.moveCamera(position.build());
+
+        Runnable runnable = () -> {
+            while (true) {
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                delaySum += delay * 10;
+                LocData raw = locData.listWithTime(delaySum);
+                lastSize = raw.sorted.size();
+
+                rewindRoute2(raw);
+
+                if (locData.sorted.size() <= lastSize) {
+                    return;
+                }
+            }
+        };
+
+        executor.submit(runnable);
+    }
+
+
+    public void rewindRoute2(LocData locData) {
+        List<LatLng> gps = locData.gps.stream().map(data -> new LatLng(data.lat, data.lng)).collect(Collectors.toList());
+        List<LatLng> kalman = locData.kalman.stream().map(data -> new LatLng(data.lat, data.lng)).collect(Collectors.toList());
+        List<LatLng> filteredGeo = locData.gpsFiltered.stream().map(data -> new LatLng(data.lat, data.lng)).collect(Collectors.toList());
+
+        Handler handler = new Handler(Looper.getMainLooper());
+
+        handler.post(() -> {
+            mapInterface.showRoute(gps, MainActivity.GPS_ONLY);
+            mapInterface.showRoute(kalman, MainActivity.FILTER_KALMAN_ONLY);
+            mapInterface.showRoute(filteredGeo, MainActivity.FILTER_KALMAN_WITH_GEO);
+        });
     }
 
     public void getRoute() {

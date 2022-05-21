@@ -206,15 +206,20 @@ public class MainActivity extends AppCompatActivity implements LocationServiceIn
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == CHOOSE_FILE_REQUESTCODE) {
-            Uri path = data.getData();
             try {
+                Uri path = null;
+                if (data != null) {
+                    path = data.getData();
+                } else {
+                    return;
+                }
                 InputStream inputStream = getContentResolver().openInputStream(path);
                 InputStreamReader isReader = new InputStreamReader(inputStream);
                 BufferedReader reader = new BufferedReader(isReader);
 
-                StringBuffer sb = new StringBuffer();
+                StringBuilder sb = new StringBuilder();
                 String str;
-                while((str = reader.readLine())!= null){
+                while ((str = reader.readLine()) != null) {
                     sb.append(str);
                 }
 
@@ -222,7 +227,8 @@ public class MainActivity extends AppCompatActivity implements LocationServiceIn
 
                 Gson gson = new Gson();
                 LocData locData = gson.fromJson(json, LocData.class);
-                Log.d("test", "test");
+
+                m_presenter.rewindRoute(locData,  m_map.getCameraPosition());
 
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
@@ -289,7 +295,6 @@ public class MainActivity extends AppCompatActivity implements LocationServiceIn
             btnStartStopText = "Start tracking";
             btnTvStatusText = "Paused";
             m_presenter.stop();
-            m_presenter.save();
             ServicesHelper.getLocationService(this, value -> {
                 value.stop();
             });
@@ -329,6 +334,9 @@ public class MainActivity extends AppCompatActivity implements LocationServiceIn
     }
 
     public void btnStartStop_click(View v) {
+        if (m_isLogging) {
+            m_presenter.save();
+        }
         set_isLogging(!m_isLogging);
     }
 
@@ -416,6 +424,12 @@ public class MainActivity extends AppCompatActivity implements LocationServiceIn
     private int routeColors[] = {R.color.mapbox_blue, R.color.colorAccent, R.color.green};
     private int routeWidths[] = {1, 3, 1};
     private Polyline lines[] = new Polyline[3];
+
+
+    @Override
+    public void clearRoute() {
+        m_map.clear();
+    }
 
     @Override
     public void showRoute(List<LatLng> route, int interestedRoute) {

@@ -10,6 +10,7 @@ import java.util.List;
  */
 
 public interface MapInterface {
+    void clearRoute();
     void showRoute(List<LatLng> route, int interestedRoute); //second arg is HACK! :)
     void moveCamera(CameraPosition position);
     void setAllGesturesEnabled(boolean enabled);
